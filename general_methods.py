@@ -3,7 +3,8 @@ import pandas as pd
 import cvxpy as cp
 import torch
 from pypfopt import HRPOpt
-from model import get_lstm, optimization_deep, return_cov_for_inference, device
+from train import get_lstm, optimize_weights, device
+from utils import return_cov_for_inference
 
 
 def min_variance(daily_returns: pd.DataFrame, tau: float = 0):
@@ -49,9 +50,9 @@ def deep_approach(portfolio, daily_returns: pd.DataFrame, pretrained=False) -> n
     portfolio.model.eval()
     data = torch.from_numpy(daily_returns.iloc[-window_size:].values).to(device, dtype=torch.float).unsqueeze(0)
     with torch.no_grad():
-        model_output = portfolio.model(data).squeeze(0)
-        cov = return_cov_for_inference(daily_returns, window_size)[-1].to(device)
-    weights = optimization_deep(cov_matrix=cov, returns=model_output)
+        model_output = portfolio.model(data).squeeze(0).reshape(-1)
+        cov = return_cov_for_inference(portfolio, daily_returns, window_size)[-1].to(device)
+    weights = optimize_weights(cov_matrix=cov, returns=model_output)
     return weights/weights.sum()
 
 

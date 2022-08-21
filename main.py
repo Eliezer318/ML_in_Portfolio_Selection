@@ -5,12 +5,9 @@ import pickle
 import yfinance as yf
 from portfolio import Portfolio
 import numpy as np
+from tqdm import tqdm
 import re
 from datetime import datetime
-
-START_DATE = '2017-08-01'
-END_TRAIN_DATE = '2021-12-31'
-END_TEST_DATE = '2022-01-31'
 
 
 def get_data():
@@ -21,7 +18,7 @@ def get_data():
     return data
 
 
-def test_portfolio():
+def test_portfolio(month_name):
     os.makedirs('data_pickles', exist_ok=True)
     path = f'data_pickles/data_{START_DATE}_{END_TRAIN_DATE}_{END_TEST_DATE}.pkl'
     if os.path.isfile(path):
@@ -47,8 +44,17 @@ def test_portfolio():
     returns = pd.DataFrame(returns).set_index('date')
     mean_return, std_returns = float(returns.mean()), float(returns.std())
     sharpe = mean_return / std_returns
-    print(sharpe)
+    print(month_name, sharpe)
+    return sharpe
 
 
 if __name__ == '__main__':
-    test_portfolio()
+    test_months = {'May': ('2017-08-01', '2022-04-30', '2022-05-31'),
+                   'June': ('2017-08-01', '2022-05-31', '2022-06-30'),
+                   'July': ('2017-08-01', '2022-06-30', '2022-07-31'),
+                   'August': ('2017-08-01', '2022-07-31', '2022-08-19')}
+    results = {}
+    for TRAIN_MONTH, (START_DATE, END_TRAIN_DATE, END_TEST_DATE) in test_months.items():
+        sharpe = test_portfolio(TRAIN_MONTH)
+        results[TRAIN_MONTH] = sharpe.__round__(4)
+    print(results)
