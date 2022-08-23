@@ -8,7 +8,7 @@ from typing import Tuple
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def get_args(gamma=0.94, window_size=30, n_epochs_train=100, lr_train=1e-3, weight_decay_train=1e-3,
+def parse_args(gamma=0.94, window_size=30, n_epochs_train=100, lr_train=1e-3, weight_decay_train=1e-3,
              n_epochs_w=500, lr_w=1e-2, weight_decay_w=10):
     parser = argparse.ArgumentParser(description='ML in Portfolio Optimization')
     parser.add_argument('--window_size', type=int, default=window_size, help='window size')
@@ -23,6 +23,8 @@ def get_args(gamma=0.94, window_size=30, n_epochs_train=100, lr_train=1e-3, weig
     parser.add_argument('--n_epochs_w', type=int, default=n_epochs_w, help='number of epochs for sgd on weights sharpe')
     parser.add_argument('--lr_w', type=float, default=lr_w, help='learning rate for sgd on weights sharpe')
     parser.add_argument('--weight_decay_w', type=float, default=weight_decay_w, help='lr decay for the weights optimization')
+
+    parser.add_argument('--pretrained', type=bool, default=False, help='pretrained model')
     return parser.parse_args()
 
 

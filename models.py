@@ -37,7 +37,7 @@ class Weights(nn.Module):
         self.w = nn.Parameter(weights/weights.sum())
 
     def forward(self, cov_matrix, returns):
-        weights = self.w
+        weights = self.w.tanh()
         future_returns = (weights.T @ returns)
         std = (weights.T @ cov_matrix @ weights) ** 0.5
         return weights, future_returns/std

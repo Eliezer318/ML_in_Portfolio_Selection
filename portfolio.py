@@ -4,7 +4,7 @@ import pandas as pd
 
 class Portfolio:
 
-    def __init__(self):
+    def __init__(self, args):
         """
         The class should load the model weights, and prepare anything needed for the testing of the model.
         The training of the model should be done before submission, here it should only be loaded
@@ -12,6 +12,7 @@ class Portfolio:
         self.model = None
         self.weights = None
         self.cov_matrices = None
+        self.args = args
         self.count = 0
 
     def train(self, train_data: pd.DataFrame):
@@ -38,12 +39,12 @@ class Portfolio:
         if self.weights is not None:  # we don't change strategy
             return self.weights
 
-        self.weights = deep_approach(self, daily_returns).reshape(-1)
+        self.weights = deep_approach(self, daily_returns, self.args).reshape(-1)
         self.weights = self.weights / self.weights.sum()
-        weights = self.weights.round(4)
-        for i in range(4):
+        weights = self.weights
+        for i in range(10, 3, -1):
             if not np.isclose(weights.sum(), 1):
-                weights[weights.argmax()] += 1 - weights.sum().round(7)
+                weights[weights.argmax()] += 1 - weights.sum().round(i)
         return weights
         # except Exception as e:
         #     print(f'Exception raised! {e}')

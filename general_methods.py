@@ -35,24 +35,24 @@ def hrp(daily_returns: pd.DataFrame):
     return np.array(list(hrp_weights.values()))
 
 
-def deep_approach(portfolio, daily_returns: pd.DataFrame, pretrained=False) -> np.ndarray:
+def deep_approach(portfolio, daily_returns: pd.DataFrame, args) -> np.ndarray:
     """
     :param portfolio: the portfolio strategy class
     :param data: the dataframe with the full data statistics
     :param daily_returns: daily returns dataframe
-    :param pretrained: whether try to get pretrained weights or to train the model
+    :param args: the arguments for the whole process
     :return:
     """
     window_size = 30
     if portfolio.model is None:
-        portfolio.model = get_lstm(daily_returns, pretrained, window_size=window_size)
+        portfolio.model = get_lstm(daily_returns, args)
     portfolio.model = portfolio.model.to(device)
     portfolio.model.eval()
     data = torch.from_numpy(daily_returns.iloc[-window_size:].values).to(device, dtype=torch.float).unsqueeze(0)
     with torch.no_grad():
         model_output = portfolio.model(data).squeeze(0).reshape(-1)
         cov = return_cov_for_inference(portfolio, daily_returns, window_size)[-1].to(device)
-    weights = optimize_weights(cov_matrix=cov, returns=model_output)
+    weights = optimize_weights(cov_matrix=cov, returns=model_output, args=args)
     return weights/weights.sum()
 
 
