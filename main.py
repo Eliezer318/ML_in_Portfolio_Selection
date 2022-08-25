@@ -33,12 +33,12 @@ def test_portfolio(args, month_name, START_DATE, END_TRAIN_DATE, END_TEST_DATE):
         if test_date not in full_train.index:
             continue
         train = full_train[full_train.index < test_date]
-        cur_portfolio = strategy.get_portfolio(train)
-        if not np.isclose(cur_portfolio.sum(), 1):
-            raise ValueError(f'The sum of the portfolio should be 1, not {cur_portfolio.sum()}')
         test_data = full_train['Adj Close'].loc[test_date].to_numpy()
         prev_test_data = train['Adj Close'].iloc[-1].to_numpy()
         test_data = test_data / prev_test_data - 1
+        cur_portfolio = strategy.get_portfolio(train)
+        if not np.isclose(cur_portfolio.sum(), 1):
+            raise ValueError(f'The sum of the portfolio should be 1, not {cur_portfolio.sum()}')
         cur_return = cur_portfolio @ test_data
         returns.append({'date': test_date, 'return': cur_return})
     returns = pd.DataFrame(returns).set_index('date')
@@ -49,35 +49,33 @@ def test_portfolio(args, month_name, START_DATE, END_TRAIN_DATE, END_TEST_DATE):
 
 
 def objective(trial: optuna.trial.Trial):
-    gamma = 0.94
+    # gamma = 0.94
     window_size = trial.suggest_int('window_size', 5, 60)
-    n_epochs_train = trial.suggest_int('n_epochs_train', 30, 500)
-    lr_train = 1e-2
+    # n_epochs_train = trial.suggest_int('n_epochs_train', 30, 500)
+    # lr_train = 1e-2
     weight_decay_train = trial.suggest_loguniform('weight_decay_train', 1e-5, 1e-1)
-    n_epochs_w = trial.suggest_int('n_epochs_w', 30, 1200)
-    lr_w = trial.suggest_loguniform('lr_w', 1e-5, 1e-3)
-    weight_decay_w = trial.suggest_loguniform('weight_decay_w', 1e-5, 1e-1)
+    dropout = trial.suggest_float('dropout', 0.0, 0.9)
+    n_assets = trial.suggest_int('n_epochs_w', 3, 100)
+    # lr_w = trial.suggest_loguniform('n_assets', 1e-5, 1e-3)
+    # weight_decay_w = trial.suggest_loguniform('weight_decay_w', 1e-5, 1e-1)
 
     print('tested params', trial.params)
     test_months = {'May': ('2017-08-01', '2022-04-30', '2022-05-31'),
                    'June': ('2017-08-01', '2022-05-31', '2022-06-30'),
                    'July': ('2017-08-01', '2022-06-30', '2022-07-31'),
-                   'August': ('2017-08-01', '2022-07-31', '2022-08-19')}
+                   'August': ('2017-08-01', '2022-07-31', '2022-08-23')}
     results = {}
     for TRAIN_MONTH, (START_DATE, END_TRAIN_DATE, END_TEST_DATE) in test_months.items():
-        args = parse_args(gamma, window_size, n_epochs_train, lr_train, weight_decay_train, n_epochs_w, lr_w, weight_decay_w)
+        # args = parse_args(gamma, window_size, n_epochs_train, lr_train, weight_decay_train, n_epochs_w, lr_w, weight_decay_w)
+        args = parse_args(weight_decay_train=weight_decay_train, dropout=dropout, n_assets=n_assets, window_size=window_size)
         sharpe = test_portfolio(args, TRAIN_MONTH, START_DATE, END_TRAIN_DATE, END_TEST_DATE)
         results[TRAIN_MONTH] = sharpe
-    print('Last Trial')
     print(trial.params, results, sum(results.values())/len(results))
-    print('Best trial till now')
-    print(study1.best_trial)
-    print(study1.best_value, study1.best_params)
-    return sum(results.values())/len(results)
+    return min(results.values())
 
 
 if __name__ == '__main__':
     print('with minus on sharpe')
     study1 = optuna.create_study(direction='maximize', study_name='portfolio_optimization without minus on sharpe')
-    study1.optimize(objective, n_trials=150, timeout=None, catch=(ValueError, ))
+    study1.optimize(objective, n_trials=40, timeout=None, catch=(ValueError, ))
     print(study1.best_params, study1.best_value)

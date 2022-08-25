@@ -60,7 +60,7 @@ def get_lstm(daily_returns: pd.DataFrame, args) -> MyLSTM:
     :return:
     """
     path_weights = 'weights.pkl'
-    model = MyLSTM(input_dim=503, hidden_size=503, num_layers=2, dropout=0.5)
+    model = MyLSTM(input_dim=503, hidden_size=503, num_layers=2, dropout=args.dropout_t)
     if args.pretrained:
         model.load_weights(path_weights)
     else:

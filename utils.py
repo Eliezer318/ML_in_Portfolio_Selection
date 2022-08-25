@@ -8,12 +8,14 @@ from typing import Tuple
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def parse_args(gamma=0.94, window_size=30, n_epochs_train=100, lr_train=1e-3, weight_decay_train=1e-3,
-             n_epochs_w=500, lr_w=1e-2, weight_decay_w=10):
+def parse_args(gamma=0.94, window_size=30, n_epochs_train=1000, lr_train=5e-4, weight_decay_train=1e-3,
+             n_epochs_w=500, lr_w=1e-2, weight_decay_w=10, dropout=0.8, n_assets=3):
     parser = argparse.ArgumentParser(description='ML in Portfolio Optimization')
     parser.add_argument('--window_size', type=int, default=window_size, help='window size')
     parser.add_argument('--gamma', type=float, default=gamma, help='gamma')
     parser.add_argument('--portfolio', type=str, default='portfolio.pkl', help='portfolio')
+    parser.add_argument('--n_assets', type=int, default=n_assets, help='window size')
+    parser.add_argument('--dropout_t', type=float, default=dropout, help='dropout in lstm model')
 
     # train arguments
     parser.add_argument('--n_epochs_train', type=int, default=n_epochs_train, help='number of epochs to train the LSTM model')
