@@ -2,6 +2,7 @@ import pandas as pd
 from tqdm import trange
 import torch
 from torch import optim
+from torch.nn import functional as f
 from models import Weights, MyLSTM
 from utils import create_dataset
 
@@ -41,11 +42,14 @@ def train_model(model: MyLSTM, daily_returns: pd.DataFrame, args):
     optimizer = optim.Adam(model.parameters(), lr=args.lr_train, weight_decay=args.weight_decay_train)
     # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5)
     tbar = trange(args.n_epochs_train)
+    # labels = (train_y > 0.001).float()
     for _ in tbar:
     # for _ in range(args.n_epochs_train):
         pred = model(train_x)  # [B, 503]
         l2_loss = ((pred - train_y) ** 2).sum(1).mean(0)
+        # bce_loss = f.binary_cross_entropy(pred, labels)
         optimizer.zero_grad()
+        # bce_loss.backward()
         l2_loss.backward()
         optimizer.step()
         tbar.set_description(f'Training model {l2_loss: .5f}')

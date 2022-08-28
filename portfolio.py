@@ -4,15 +4,16 @@ import pandas as pd
 
 class Portfolio:
 
-    def __init__(self, args):
+    def __init__(self, ):
         """
         The class should load the model weights, and prepare anything needed for the testing of the model.
         The training of the model should be done before submission, here it should only be loaded
         """
+        from utils import parse_args
         self.model = None
         self.weights = None
         self.cov_matrices = None
-        self.args = args
+        self.args = parse_args()
         self.count = 0
 
     def train(self, train_data: pd.DataFrame):
@@ -35,17 +36,20 @@ class Portfolio:
         if self.count % 1 == 0:
             self.count += 1
             self.weights = None
-
         if self.weights is not None:  # we don't change strategy
             return self.weights
-
         self.weights = deep_approach(self, daily_returns, self.args).reshape(-1)
         self.weights = self.weights / self.weights.sum()
         weights = self.weights
         for i in range(10, 3, -1):
             if not np.isclose(weights.sum(), 1):
+                print(f'difference {weights.sum().round(i)}')
                 weights[weights.argmax()] += 1 - weights.sum().round(i)
         return weights
+
+
+
+
         # except Exception as e:
         #     print(f'Exception raised! {e}')
         #     try:

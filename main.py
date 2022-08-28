@@ -1,16 +1,16 @@
-import os
-
 import pandas as pd
-import pickle
 import yfinance as yf
 from portfolio import Portfolio
 import numpy as np
-import optuna
+import pickle
+import os
 
-from utils import parse_args
+
+START_DATE = '2017-08-01'
 
 
-def get_data(START_DATE, END_TEST_DATE):
+
+def get_data():
     wiki_table = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
     sp_tickers = wiki_table[0]
     tickers = [ticker.replace('.', '-') for ticker in sp_tickers['Symbol'].to_list()]
@@ -18,64 +18,44 @@ def get_data(START_DATE, END_TEST_DATE):
     return data
 
 
-def test_portfolio(args, month_name, START_DATE, END_TRAIN_DATE, END_TEST_DATE):
+def test_portfolio():
     os.makedirs('data_pickles', exist_ok=True)
-    path = f'data_pickles/data_{START_DATE}_{END_TRAIN_DATE}_{END_TEST_DATE}.pkl'
+    path = f'data_pickles/1data_{START_DATE}_{END_TRAIN_DATE}_{END_TEST_DATE}.pkl'
     if os.path.isfile(path):
         full_train = pickle.load(open(path, 'rb'))
     else:
-        full_train = get_data(START_DATE, END_TEST_DATE)
+        full_train = get_data()
         pickle.dump(full_train, open(path, 'wb'))
-
     returns = []
-    strategy = Portfolio(args)
+    strategy = Portfolio()
     for test_date in pd.date_range(END_TRAIN_DATE, END_TEST_DATE):
         if test_date not in full_train.index:
             continue
         train = full_train[full_train.index < test_date]
-        test_data = full_train['Adj Close'].loc[test_date].to_numpy()
-        prev_test_data = train['Adj Close'].iloc[-1].to_numpy()
-        test_data = test_data / prev_test_data - 1
         cur_portfolio = strategy.get_portfolio(train)
         if not np.isclose(cur_portfolio.sum(), 1):
             raise ValueError(f'The sum of the portfolio should be 1, not {cur_portfolio.sum()}')
+        test_data = full_train['Adj Close'].loc[test_date].to_numpy()
+        prev_test_data = train['Adj Close'].iloc[-1].to_numpy()
+        test_data = test_data / prev_test_data - 1
         cur_return = cur_portfolio @ test_data
         returns.append({'date': test_date, 'return': cur_return})
     returns = pd.DataFrame(returns).set_index('date')
     mean_return, std_returns = float(returns.mean()), float(returns.std())
     sharpe = mean_return / std_returns
-    print(month_name, sharpe)
-    return sharpe
-
-
-def objective(trial: optuna.trial.Trial):
-    # gamma = 0.94
-    window_size = trial.suggest_int('window_size', 5, 60)
-    # n_epochs_train = trial.suggest_int('n_epochs_train', 30, 500)
-    # lr_train = 1e-2
-    weight_decay_train = trial.suggest_loguniform('weight_decay_train', 1e-5, 1e-1)
-    dropout = trial.suggest_float('dropout', 0.0, 0.9)
-    n_assets = trial.suggest_int('n_epochs_w', 3, 100)
-    # lr_w = trial.suggest_loguniform('n_assets', 1e-5, 1e-3)
-    # weight_decay_w = trial.suggest_loguniform('weight_decay_w', 1e-5, 1e-1)
-
-    print('tested params', trial.params)
-    test_months = {'May': ('2017-08-01', '2022-04-30', '2022-05-31'),
-                   'June': ('2017-08-01', '2022-05-31', '2022-06-30'),
-                   'July': ('2017-08-01', '2022-06-30', '2022-07-31'),
-                   'August': ('2017-08-01', '2022-07-31', '2022-08-23')}
-    results = {}
-    for TRAIN_MONTH, (START_DATE, END_TRAIN_DATE, END_TEST_DATE) in test_months.items():
-        # args = parse_args(gamma, window_size, n_epochs_train, lr_train, weight_decay_train, n_epochs_w, lr_w, weight_decay_w)
-        args = parse_args(weight_decay_train=weight_decay_train, dropout=dropout, n_assets=n_assets, window_size=window_size)
-        sharpe = test_portfolio(args, TRAIN_MONTH, START_DATE, END_TRAIN_DATE, END_TEST_DATE)
-        results[TRAIN_MONTH] = sharpe
-    print(trial.params, results, sum(results.values())/len(results))
-    return min(results.values())
+    print(sharpe)
 
 
 if __name__ == '__main__':
-    print('with minus on sharpe')
-    study1 = optuna.create_study(direction='maximize', study_name='portfolio_optimization without minus on sharpe')
-    study1.optimize(objective, n_trials=40, timeout=None, catch=(ValueError, ))
-    print(study1.best_params, study1.best_value)
+    for month in ['May', 'June', 'July', 'August']:
+        if month == 'May':
+            END_TRAIN_DATE, END_TEST_DATE = '2022-04-30', '2022-05-31'
+        elif month == 'June':
+            END_TRAIN_DATE, END_TEST_DATE = '2022-05-31', '2022-06-30'
+        elif month == 'July':
+            END_TRAIN_DATE, END_TEST_DATE = '2022-06-30', '2022-07-31'
+        elif month == 'August':
+            END_TRAIN_DATE, END_TEST_DATE = '2022-07-31', '2022-08-26'
+        print(f'Running for {month}')
+
+        test_portfolio()

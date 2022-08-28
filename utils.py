@@ -8,8 +8,8 @@ from typing import Tuple
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def parse_args(gamma=0.94, window_size=30, n_epochs_train=1000, lr_train=5e-4, weight_decay_train=1e-3,
-             n_epochs_w=500, lr_w=1e-2, weight_decay_w=10, dropout=0.8, n_assets=3):
+def parse_args(gamma=0.94, window_size=50, n_epochs_train=100, lr_train=8e-4, weight_decay_train=1e-3, n_epochs_w=500,
+               lr_w=1e-2, weight_decay_w=1e-8, dropout=0.8, n_assets=10):
     parser = argparse.ArgumentParser(description='ML in Portfolio Optimization')
     parser.add_argument('--window_size', type=int, default=window_size, help='window size')
     parser.add_argument('--gamma', type=float, default=gamma, help='gamma')
@@ -44,8 +44,8 @@ def batch_cov(data: torch.Tensor):
     B, N, D = data.size()
     mean = data.mean(dim=1).unsqueeze(1)
     diffs = (data - mean).reshape(B * N, D)
-    prods = torch.bmm(diffs.unsqueeze(2), diffs.unsqueeze(1)).reshape(B, N, D, D)
-    cov_matrices = (prods.sum(dim=1) / (N - 1))
+    prods = torch.bmm(diffs.unsqueeze(2), diffs.unsqueeze(1)).reshape(B, N, D, D).sum(dim=1)
+    cov_matrices = (prods / (N - 1))
     return cov_matrices
 
 
@@ -53,12 +53,10 @@ def vectorized_adjusted_covariance(cov_matrices: torch.Tensor, gamma=0.94):
     """
     return vectorized adjusted covariance matrices
     """
-    cov_matrices = cov_matrices.flip(0)  # [B, D, D] Unbiased estimate
-    current_gammas = gamma ** torch.arange(1, cov_matrices.shape[0] + 1)
-    cov_matrices = current_gammas.reshape(-1, 1, 1) * cov_matrices
-    cov_matrices = cov_matrices.cumsum(dim=0)
+    B = cov_matrices.shape[0]
+    current_gammas = gamma ** torch.arange(1, B + 1)
     sigma_gammas = current_gammas.cumsum(0)
-    cov = (cov_matrices / sigma_gammas.reshape(-1, 1, 1)).flip(0)
+    cov = ((current_gammas.reshape(-1, 1, 1) * cov_matrices.flip(0)).cumsum(dim=0)/ sigma_gammas.reshape(-1, 1, 1)).flip(0)
     return cov.to(dtype=torch.float)
 
 
@@ -68,6 +66,7 @@ def create_dataset(df: pd.DataFrame, window_size=30, gamma=0.94, inference=False
     if not inference:
         train_x = train_x[:-1]
     cov_matrices = batch_cov(train_x)
+    # train_cov = None
     train_cov = vectorized_adjusted_covariance(cov_matrices, gamma=gamma)
     return train_x, train_y, train_cov, cov_matrices
 

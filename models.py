@@ -3,10 +3,10 @@ from torch import nn
 
 
 class MyLSTM(nn.Module):
-    def __init__(self, input_dim=503, hidden_size=503, num_layers=2, dropout=0.8):
+    def __init__(self, input_dim=503, hidden_size=50, num_layers=3, dropout=0.8):
         super(MyLSTM, self).__init__()
-        self.lstm = nn.LSTM(input_dim, hidden_size, num_layers, batch_first=True, dropout=dropout)
-        self.linear = nn.Linear(hidden_size, input_dim)
+        self.lstm = nn.LSTM(input_dim, hidden_size, num_layers, batch_first=True, dropout=dropout, bidirectional=True)
+        self.linear = nn.Linear(2 * hidden_size, input_dim)
 
     def load_weights(self, path_weights: str):
         self.load_state_dict(torch.load(path_weights))
@@ -17,12 +17,13 @@ class MyLSTM(nn.Module):
             pass
         else:
             pass
-        hiddens, _ = self.lstm(data)  # [B, T, hidden_size]
-        x = self.linear(hiddens)      # [B, T, output_dim]
+        x, _ = self.lstm(data)  # [B, T, hidden_size]
         x = x[:, -1, :]               # [B, output_dim]
+        x = self.linear(x)      # [B, T, output_dim]
+        # x = x[:, :, :].mean(1)               # [B, output_dim]
         # x = x/x.sum(1).reshape(-1, 1)
         # return x.softmax(-1)
-        return x.tanh()
+        return x
 
 
 class Weights(nn.Module):
@@ -37,8 +38,8 @@ class Weights(nn.Module):
         self.w = nn.Parameter(weights/weights.sum())
 
     def forward(self, cov_matrix, returns):
-        weights = self.w.tanh()
+        weights = self.w/self.w.sum()
         future_returns = (weights.T @ returns)
-        std = (weights.T @ cov_matrix @ weights) ** 0.5
-        return weights, future_returns/std
+        std = (weights.T @ cov_matrix @ weights)
+        return weights, (future_returns ** 2)/std
 
