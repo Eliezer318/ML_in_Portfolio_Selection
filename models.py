@@ -14,13 +14,7 @@ class MyLSTM(nn.Module):
     def forward(self, data: torch.Tensor) -> torch.Tensor:
         # data shape is [B, window_size, D=503]
         x, _ = self.lstm(data)  # [B, T, hidden_size]
-        if not self.training:
-            x = x[:, -1]
-        # x = x[:, -1, :]               # [B, output_dim]
-        # x = self.linear(x)      # [B, T, output_dim]
-        # x = x[:, :, :].mean(1)               # [B, output_dim]
-        # x = x/x.sum(1).reshape(-1, 1)
-        # return x.softmax(-1)
+        x = self.linear(x[:, -1, :])      # [B, T, output_dim]
         return x
 
 
