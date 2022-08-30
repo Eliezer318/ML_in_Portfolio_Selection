@@ -53,14 +53,11 @@ def deep_approach(portfolio, daily_returns: pd.DataFrame, args) -> np.ndarray:
         model_output = portfolio.model(data).squeeze(0).reshape(-1)
         cov = return_cov_for_inference(portfolio, daily_returns, window_size)[-1].to(device)
     weights = optimize_weights(cov_matrix=cov, returns=model_output, args=args)
-    # weights = np.zeros(daily_returns.shape[1])
-    # output = model_output.cpu().detach().numpy()
-    # args = output.__abs__().argsort()[-args.n_assets:]
-    # weights[args] = min_variance(pd.DataFrame(output[args]))
-    return weights
-    # weights[output.argsort()[:args.n_assets]] = -1
-    # print(f'L2 Error {((output - results) ** 2).sum(): .5f} {daily_returns.columns[((output - results) ** 2).argsort()[:10]].tolist()}')
-    # return weights/weights.sum()
+    weights = np.zeros(daily_returns.shape[1])
+    output = model_output.cpu().detach().numpy()
+    args = output.argsort()[-args.n_assets:]
+    weights[args] = 1
+    return weights/weights.sum()
 
 
 def stock_picking(daily_returns: pd.DataFrame) -> np.ndarray:

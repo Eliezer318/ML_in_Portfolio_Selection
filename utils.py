@@ -8,7 +8,7 @@ from typing import Tuple
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def parse_args(gamma=0.94, window_size=50, n_epochs_train=100, lr_train=8e-4, weight_decay_train=1e-3, n_epochs_w=500,
+def parse_args(gamma=0.94, window_size=30, n_epochs_train=250, lr_train=8e-4, weight_decay_train=1e-4, n_epochs_w=500,
                lr_w=1e-2, weight_decay_w=1e-8, dropout=0.8, n_assets=10):
     parser = argparse.ArgumentParser(description='ML in Portfolio Optimization')
     parser.add_argument('--window_size', type=int, default=window_size, help='window size')
@@ -63,10 +63,10 @@ def vectorized_adjusted_covariance(cov_matrices: torch.Tensor, gamma=0.94):
 def create_dataset(df: pd.DataFrame, window_size=30, gamma=0.94, inference=False) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     train_x = torch.from_numpy(strided_axis0(df.values, window_size)).float()
     train_y = torch.from_numpy(df.values[window_size::]).float()
-    if not inference:
-        train_x = train_x[:-1]
+    # if not inference:
+    #     train_x = train_x[:-1]
+    # train_cov, cov_matrices = None, None
     cov_matrices = batch_cov(train_x)
-    # train_cov = None
     train_cov = vectorized_adjusted_covariance(cov_matrices, gamma=gamma)
     return train_x, train_y, train_cov, cov_matrices
 

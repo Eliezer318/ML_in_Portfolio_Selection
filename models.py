@@ -3,23 +3,21 @@ from torch import nn
 
 
 class MyLSTM(nn.Module):
-    def __init__(self, input_dim=503, hidden_size=50, num_layers=3, dropout=0.8):
+    def __init__(self, input_dim=503, hidden_size=503, num_layers=2, dropout=0.8):
         super(MyLSTM, self).__init__()
-        self.lstm = nn.LSTM(input_dim, hidden_size, num_layers, batch_first=True, dropout=dropout, bidirectional=True)
-        self.linear = nn.Linear(2 * hidden_size, input_dim)
+        self.lstm = nn.LSTM(input_dim, hidden_size, num_layers, batch_first=True, dropout=dropout, bidirectional=False)
+        self.linear = nn.Linear(hidden_size, input_dim)
 
     def load_weights(self, path_weights: str):
         self.load_state_dict(torch.load(path_weights))
 
     def forward(self, data: torch.Tensor) -> torch.Tensor:
         # data shape is [B, window_size, D=503]
-        if self.training:
-            pass
-        else:
-            pass
         x, _ = self.lstm(data)  # [B, T, hidden_size]
-        x = x[:, -1, :]               # [B, output_dim]
-        x = self.linear(x)      # [B, T, output_dim]
+        if not self.training:
+            x = x[:, -1]
+        # x = x[:, -1, :]               # [B, output_dim]
+        # x = self.linear(x)      # [B, T, output_dim]
         # x = x[:, :, :].mean(1)               # [B, output_dim]
         # x = x/x.sum(1).reshape(-1, 1)
         # return x.softmax(-1)

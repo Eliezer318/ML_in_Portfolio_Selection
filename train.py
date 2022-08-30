@@ -44,9 +44,9 @@ def train_model(model: MyLSTM, daily_returns: pd.DataFrame, args):
     tbar = trange(args.n_epochs_train)
     # labels = (train_y > 0.001).float()
     for _ in tbar:
-    # for _ in range(args.n_epochs_train):
-        pred = model(train_x)  # [B, 503]
-        l2_loss = ((pred - train_y) ** 2).sum(1).mean(0)
+        pred = model(train_x[:-1])  # [B, 503]
+        # l2_loss = ((pred - train_y) ** 2).sum(1).mean(0)
+        l2_loss = ((pred - train_x[1:]) ** 2).sum(2).mean(1).mean(0)
         # bce_loss = f.binary_cross_entropy(pred, labels)
         optimizer.zero_grad()
         # bce_loss.backward()

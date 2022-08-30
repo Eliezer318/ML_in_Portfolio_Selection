@@ -2,12 +2,11 @@ import pandas as pd
 import yfinance as yf
 from portfolio import Portfolio
 import numpy as np
-import pickle
-import os
 
 
 START_DATE = '2017-08-01'
-
+END_TRAIN_DATE = '2022-08-31'
+END_TEST_DATE = '2022-09-31'
 
 
 def get_data():
@@ -19,13 +18,7 @@ def get_data():
 
 
 def test_portfolio():
-    os.makedirs('data_pickles', exist_ok=True)
-    path = f'data_pickles/1data_{START_DATE}_{END_TRAIN_DATE}_{END_TEST_DATE}.pkl'
-    if os.path.isfile(path):
-        full_train = pickle.load(open(path, 'rb'))
-    else:
-        full_train = get_data()
-        pickle.dump(full_train, open(path, 'wb'))
+    full_train = get_data()
     returns = []
     strategy = Portfolio()
     for test_date in pd.date_range(END_TRAIN_DATE, END_TEST_DATE):
@@ -47,15 +40,4 @@ def test_portfolio():
 
 
 if __name__ == '__main__':
-    for month in ['May', 'June', 'July', 'August']:
-        if month == 'May':
-            END_TRAIN_DATE, END_TEST_DATE = '2022-04-30', '2022-05-31'
-        elif month == 'June':
-            END_TRAIN_DATE, END_TEST_DATE = '2022-05-31', '2022-06-30'
-        elif month == 'July':
-            END_TRAIN_DATE, END_TEST_DATE = '2022-06-30', '2022-07-31'
-        elif month == 'August':
-            END_TRAIN_DATE, END_TEST_DATE = '2022-07-31', '2022-08-26'
-        print(f'Running for {month}')
-
-        test_portfolio()
+    test_portfolio()
